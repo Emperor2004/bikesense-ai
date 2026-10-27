@@ -60,10 +60,10 @@ def time_ordered_train_val_split(
     """
     df = df.copy()
     df["ym"] = pd.to_datetime(df["datetime_hour"]).dt.strftime("%Y-%m")
-    
+
     # Filter only to data within train_months
     filtered = df[df["ym"].isin(train_months)].sort_values("datetime_hour").reset_index(drop=True)
-    
+
     val_month = train_months[-1]
     fit_months = train_months[:-1]
 
@@ -182,8 +182,8 @@ def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
             }
         )
 
-    # 3. LightGBM Candidates
-    lgbm_experiments = model_cfg["lightgbm"]["experiments"]
+    # 3. LightGBM Candidates (Preset experiments)
+    lgbm_experiments = model_cfg.get("lightgbm", {}).get("experiments", [])
     for i, exp in enumerate(lgbm_experiments, start=1):
         name = exp["name"]
         print(f"Training LightGBM Candidate {i}/{len(lgbm_experiments)}: {name}...")
@@ -200,6 +200,7 @@ def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
 
             mlflow.log_param("model_type", "lightgbm")
             mlflow.log_param("candidate_name", name)
+            mlflow.log_param("is_tuned_trial", False)
             mlflow.log_params(params_to_fit)
             mlflow.log_metrics({f"train_{k}": v for k, v in train_metrics.items()})
             mlflow.log_metrics({f"val_{k}": v for k, v in val_metrics.items()})
@@ -220,6 +221,61 @@ def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
                     "run_id": mlflow.active_run().info.run_id,
                 }
             )
+
+    # 4. Hyperparameter Tuning Exploration
+    tuning_cfg = model_cfg.get("tuning", {})
+    if tuning_cfg.get("enabled", False):
+        from sklearn.model_selection import ParameterSampler
+
+        param_dist = tuning_cfg.get("param_distributions", {})
+        n_trials = tuning_cfg.get("n_trials", 6)
+        rng_seed = tuning_cfg.get("random_state", 42)
+        sampler = list(ParameterSampler(param_dist, n_iter=n_trials, random_state=rng_seed))
+
+        print(f"\nRunning Hyperparameter Tuning ({len(sampler)} trials)...")
+        for idx, trial_params in enumerate(sampler, start=1):
+            trial_name = f"lgbm_tune_trial_{idx}"
+            print(f"Trial {idx}/{len(sampler)}: {trial_params}")
+            with mlflow.start_run(run_name=f"{trial_name}_{dataset_version}"):
+                reg = lgb.LGBMRegressor(
+                    **trial_params,
+                    objective="regression",
+                    random_state=rng_seed,
+                    verbose=-1,
+                )
+                reg.fit(X_train, y_train)
+
+                train_preds = np.maximum(0.0, reg.predict(X_train))
+                val_preds = np.maximum(0.0, reg.predict(X_val))
+
+                train_metrics = compute_all_metrics(y_train, train_preds)
+                val_metrics = compute_all_metrics(y_val, val_preds)
+
+                mlflow.log_param("model_type", "lightgbm")
+                mlflow.log_param("candidate_name", trial_name)
+                mlflow.log_param("is_tuned_trial", True)
+                mlflow.log_params(trial_params)
+                mlflow.log_metrics({f"train_{k}": v for k, v in train_metrics.items()})
+                mlflow.log_metrics({f"val_{k}": v for k, v in val_metrics.items()})
+                mlflow.set_tags(
+                    {
+                        "git_commit": git_commit,
+                        "dvc_dataset_hash": dvc_hash,
+                        "dataset_version": dataset_version,
+                        "tuning_trial": str(idx),
+                    }
+                )
+                mlflow.lightgbm.log_model(reg, artifact_path="model")
+
+                results.append(
+                    {
+                        "model_name": trial_name,
+                        "val_mae": val_metrics["mae"],
+                        "val_shortfall": val_metrics["shortfall"],
+                        "run_id": mlflow.active_run().info.run_id,
+                        "params": trial_params,
+                    }
+                )
 
     # Rank and pick best candidate
     best_candidate = min(results, key=lambda r: r["val_mae"])

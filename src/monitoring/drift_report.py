@@ -40,7 +40,7 @@ def generate_drift_report(
 
     # Filter to selected features present in both dataframes
     common_cols = [c for c in features_to_check if c in ref_df.columns and c in curr_df.columns]
-    
+
     # If target / prediction exists, include it for target drift
     target_col = "departures" if "departures" in ref_df.columns and "departures" in curr_df.columns else None
     if target_col and target_col not in common_cols:

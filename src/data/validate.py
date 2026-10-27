@@ -48,7 +48,7 @@ def validate_no_future_dates(df: pd.DataFrame, year_month: str) -> list[str]:
     errors = []
     if "started_at" not in df.columns:
         return ["Column 'started_at' not found for date validation"]
-    
+
     started = pd.to_datetime(df["started_at"], errors="coerce")
     null_dates = started.isna().sum()
     if null_dates > 0:

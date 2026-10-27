@@ -1,43 +1,117 @@
 {
   "best_candidate": {
-    "model_name": "lgbm_regularized",
-    "val_mae": 1.0365,
-    "val_shortfall": 9916.09,
-    "run_id": "c9cb6755d1ba4e3689283034af022042"
+    "model_name": "lgbm_tune_trial_3",
+    "val_mae": 1.035,
+    "val_shortfall": 9842.06,
+    "run_id": "ecb2e56c259e40a8b5b21f5aaf03788c",
+    "params": {
+      "subsample": 0.8,
+      "reg_lambda": 0.0,
+      "reg_alpha": 0.1,
+      "num_leaves": 45,
+      "n_estimators": 200,
+      "max_depth": 5,
+      "learning_rate": 0.04,
+      "colsample_bytree": 1.0
+    }
   },
   "all_runs": [
     {
       "model_name": "seasonal_naive",
       "val_mae": 1.245,
       "val_shortfall": 13110.0,
-      "run_id": "9bf99fba3e2145ef8ba797b894544a61"
+      "run_id": "f03276836cba4b35804dade4d6ac5a0f"
     },
     {
       "model_name": "ridge",
       "val_mae": 1.0713,
-      "val_shortfall": 11431.93,
-      "run_id": "799591972acb48c2b8e1c346b73a195b"
+      "val_shortfall": 11431.94,
+      "run_id": "62a08f8b67954c62a8fb1ef027aeeefd"
     },
     {
       "model_name": "lgbm_shallow",
       "val_mae": 1.0445,
       "val_shortfall": 10247.03,
-      "run_id": "8ce59a94ecdc4792ba0434ad285c016b"
+      "run_id": "cd9f39cdc53d4a7cab690ea86bb216f7"
     },
     {
       "model_name": "lgbm_deep",
       "val_mae": 1.0397,
       "val_shortfall": 9784.71,
-      "run_id": "fed69de2ef5b40bcb21f5c1574030aa1"
+      "run_id": "7cc6cd08010e42528ed09a12f4c2a583"
     },
     {
       "model_name": "lgbm_regularized",
       "val_mae": 1.0365,
       "val_shortfall": 9916.09,
-      "run_id": "c9cb6755d1ba4e3689283034af022042"
+      "run_id": "3d813286bdd74a99a5b3b1fab2fb4f8e"
+    },
+    {
+      "model_name": "lgbm_tune_trial_1",
+      "val_mae": 1.0661,
+      "val_shortfall": 10571.98,
+      "run_id": "d0645406782e47a3837e2e23d6149af4",
+      "params": {
+        "subsample": 1.0,
+        "reg_lambda": 0.0,
+        "reg_alpha": 0.1,
+        "num_leaves": 63,
+        "n_estimators": 150,
+        "max_depth": 6,
+        "learning_rate": 0.02,
+        "colsample_bytree": 1.0
+      }
+    },
+    {
+      "model_name": "lgbm_tune_trial_2",
+      "val_mae": 1.038,
+      "val_shortfall": 9477.4,
+      "run_id": "82412e8c413547f7ac62ecf28ce625fd",
+      "params": {
+        "subsample": 0.8,
+        "reg_lambda": 0.5,
+        "reg_alpha": 0.5,
+        "num_leaves": 63,
+        "n_estimators": 150,
+        "max_depth": 7,
+        "learning_rate": 0.08,
+        "colsample_bytree": 0.8
+      }
+    },
+    {
+      "model_name": "lgbm_tune_trial_3",
+      "val_mae": 1.035,
+      "val_shortfall": 9842.06,
+      "run_id": "ecb2e56c259e40a8b5b21f5aaf03788c",
+      "params": {
+        "subsample": 0.8,
+        "reg_lambda": 0.0,
+        "reg_alpha": 0.1,
+        "num_leaves": 45,
+        "n_estimators": 200,
+        "max_depth": 5,
+        "learning_rate": 0.04,
+        "colsample_bytree": 1.0
+      }
+    },
+    {
+      "model_name": "lgbm_tune_trial_4",
+      "val_mae": 1.0425,
+      "val_shortfall": 9358.73,
+      "run_id": "99d7aa661ae5467d954942ff18d730f9",
+      "params": {
+        "subsample": 1.0,
+        "reg_lambda": 0.0,
+        "reg_alpha": 0.5,
+        "num_leaves": 63,
+        "n_estimators": 250,
+        "max_depth": 6,
+        "learning_rate": 0.08,
+        "colsample_bytree": 0.8
+      }
     }
   ],
   "dataset_version": "v1",
-  "git_commit": "b8877259c5332c13ef1bbbff3761858b515017e5",
+  "git_commit": "d1a6f36703fc8a3b4f8d9fe5889891ee758a4480",
   "dvc_dataset_hash": "md5"
 }
