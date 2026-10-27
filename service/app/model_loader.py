@@ -48,7 +48,11 @@ class DynamicModelLoader:
         # Check if version has changed or model is not yet loaded
         if self.cached_model is None or self.current_version != active_version:
             print(f"[ModelLoader] Loading new champion model: version {active_version}...")
-            model_uri = f"models:/{self.model_name}@{active_version}"
+            # If active_version is numeric, load via models:/<name>/<version>
+            if str(active_version).isdigit():
+                model_uri = f"models:/{self.model_name}/{active_version}"
+            else:
+                model_uri = f"models:/{self.model_name}@{active_version}"
             loaded_model = mlflow.pyfunc.load_model(model_uri)
 
             # Retrieve model version tags for lineage
