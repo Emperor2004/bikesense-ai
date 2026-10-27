@@ -46,7 +46,7 @@ def run_replay(
     service_url: str = "http://localhost:8000",
 ) -> pd.DataFrame:
     """Run replay simulation across the designated replay window."""
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     months_dict = params["months"]

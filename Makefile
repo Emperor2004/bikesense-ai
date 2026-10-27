@@ -17,6 +17,9 @@ features: data
 train:
 	python -m src.models.train
 
+evaluate:
+	python -m src.models.evaluate
+
 register:
 	python -m src.registry.register
 

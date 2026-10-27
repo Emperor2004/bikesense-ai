@@ -1,51 +1,51 @@
-# ─── Month definitions ───
-# M1–M14: July 2023 through August 2024
-months:
-  m1: "2023-07"
-  m2: "2023-08"
-  m3: "2023-09"
-  m4: "2023-10"
-  m5: "2023-11"
-  m6: "2023-12"
-  m7: "2024-01"
-  m8: "2024-02"
-  m9: "2024-03"
-  m10: "2024-04"
-  m11: "2024-05"
-  m12: "2024-06"
-  m13: "2024-07"
-  m14: "2024-08"
+# params.yaml
+# Central configuration for the housing-price DVC pipeline.
+# Every stage script reads only its own block — keeps stages decoupled.
 
-# ─── Dataset versions ───
-dataset_version: "v1"  # active version for dvc repro
+data_ingestion:
+  raw_data_path: datasets/housing.csv
+  train_path: datasets/raw/train.csv
+  test_path: datasets/raw/test.csv
+  test_size: 0.2
+  random_state: 42
 
-dataset_versions:
-  v1:
-    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8"]
-    replay: ["m9", "m10"]
-  v2:
-    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10"]
-    replay: ["m11", "m12"]
-  v3:
-    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"]
-    replay: ["m13", "m14"]
+data_preprocessing:
+  train_in: datasets/raw/train.csv
+  test_in: datasets/raw/test.csv
+  train_out: datasets/processed/train.csv
+  test_out: datasets/processed/test.csv
+  target_column: price
+  binary_yes_no_columns:
+    - mainroad
+    - guestroom
+    - basement
+    - hotwaterheating
+    - airconditioning
+    - prefarea
+  categorical_columns:
+    - furnishingstatus
 
-# ─── Station selection ───
-stations:
-  top_n: 30  # fixed from dataset v1
+feature_engineering:
+  train_in: datasets/processed/train.csv
+  test_in: datasets/processed/test.csv
+  train_out: datasets/features/train.csv
+  test_out: datasets/features/test.csv
+  target_column: price
+  scaler_path: models/scaler.pkl
+  scale_features: true
+  add_derived_features: true
 
-# ─── Citi Bike data source ───
-citibike:
-  base_url: "https://s3.amazonaws.com/tripdata"
-  file_pattern: "JC-{yyyymm}-citibike-tripdata.csv.zip"
+model_training:
+  train_path: datasets/features/train.csv
+  target_column: price
+  model_path: models/model.pkl
+  model_name: random_forest   # random_forest | linear_regression
+  random_state: 42
+  n_estimators: 500
+  max_depth: 50
 
-# ─── Weather (Open-Meteo) ───
-weather:
-  api_url: "https://archive-api.open-meteo.com/v1/archive"
-  latitude: 40.7128
-  longitude: -74.0060
-  hourly_vars:
-    - temperature_2m
-    - precipitation
-    - wind_speed_10m
-  timezone: "America/New_York"
+model_evaluation:
+  test_path: datasets/features/test.csv
+  model_path: models/model.pkl
+  target_column: price
+  metrics_path: metrics.json

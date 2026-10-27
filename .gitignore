@@ -1,39 +1,98 @@
-# Python
+# ═══════════════════════════════════════════════════════════════
+# BikeSense AI — .gitignore
+# ═══════════════════════════════════════════════════════════════
+
+# ─── Python ───────────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
 .venv/
 venv/
+env/
+ENV/
 *.egg-info/
+*.egg
 dist/
 build/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
 
-# DVC tracked data (actual files, not .dvc pointers)
+# ─── DVC tracked data (actual files, not .dvc pointers) ──────
 /data/raw/*
 !/data/raw/.gitkeep
 /data/external/weather/*.parquet
 /data/external/holidays.parquet
-/data/processed/*.parquet
+/data/processed/*
+!/data/processed/.gitkeep
+!/data/processed/station_list.json
 /data/predictions/
 
-# MLflow
+# ─── MLflow ───────────────────────────────────────────────────
 mlruns/
 mlflow.db
+mlartifacts/
 
-# Evidently reports (generated, not source)
+# ─── Evidently reports (generated, not source) ───────────────
 /reports/monitoring/*.html
+/reports/monitoring/*.json
+/reports/evaluation/*.html
+/reports/evaluation/*.json
+/reports/evaluation/*.csv
 
-# IDE
+# ─── Docker ───────────────────────────────────────────────────
+*.pid
+docker-compose.override.yml
+
+# ─── Testing & linting ───────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ─── Jupyter ──────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_metadata/
+
+# ─── IDE ──────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ─── OS generated files ──────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
-# Logs
+# ─── Logs ─────────────────────────────────────────────────────
 *.log
+logs/
+nohup.out
 
-# Jupyter
-.ipynb_checkpoints/
+# ─── Environment & secrets ───────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*accessKeys*.csv
+*credentials*.csv
+
+# ─── Misc ─────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.orig

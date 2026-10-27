@@ -140,7 +140,7 @@ def main():
     parser.add_argument("--version", type=str, default=None, help="Dataset version (e.g. v1, v2, v3)")
     args = parser.parse_args()
 
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     version = args.version or params.get("dataset_version", "v1")

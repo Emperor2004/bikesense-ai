@@ -42,3 +42,32 @@ stages:
       - dataset_versions
     outs:
       - data/processed/features.parquet
+
+  train:
+    cmd: python -m src.models.train
+    deps:
+      - src/models/train.py
+      - src/models/baseline.py
+      - src/models/metrics.py
+      - configs/model.yaml
+      - data/processed/features.parquet
+    params:
+      - dataset_version
+      - dataset_versions
+    outs:
+      - reports/evaluation/latest_training_summary.json
+
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+      - src/models/evaluate.py
+      - src/models/baseline.py
+      - src/models/metrics.py
+      - configs/model.yaml
+      - data/processed/features.parquet
+      - reports/evaluation/latest_training_summary.json
+    params:
+      - dataset_version
+      - dataset_versions
+    outs:
+      - reports/evaluation/evaluation_v1.md

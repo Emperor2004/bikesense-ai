@@ -32,7 +32,7 @@ def build_holiday_flags(start_date: str, end_date: str) -> pd.DataFrame:
 
 
 def main():
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     month_keys = sorted(params["months"].keys(), key=lambda k: int(k.replace("m", "")))

@@ -234,7 +234,7 @@ def ingest_all(params: dict) -> None:
 
 
 def main():
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     ingest_all(params)
 

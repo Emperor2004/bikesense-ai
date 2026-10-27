@@ -84,7 +84,7 @@ def time_ordered_train_val_split(
 
 def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
     """Train Baseline, Ridge, and LightGBM models, logging runs to MLflow."""
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     with open("configs/model.yaml", "r", encoding="utf-8") as f:
         model_cfg = yaml.safe_load(f)

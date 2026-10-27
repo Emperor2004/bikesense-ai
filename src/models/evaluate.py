@@ -18,7 +18,7 @@ def evaluate_window(
     output_dir: Path = Path("reports/evaluation"),
 ) -> pd.DataFrame:
     """Evaluate models on the replay window and generate markdown reports."""
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     with open("configs/model.yaml", "r", encoding="utf-8") as f:
         model_cfg = yaml.safe_load(f)

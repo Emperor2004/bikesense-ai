@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source and configs
 COPY service/ ./service/
 COPY configs/ ./configs/
+COPY config.yaml .
 COPY params.yaml .
 COPY dvc.lock .
 

@@ -77,7 +77,7 @@ def fetch_all_weather(params: dict) -> None:
 
 
 def main():
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     fetch_all_weather(params)
     print("All weather data cached successfully.")

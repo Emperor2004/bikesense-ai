@@ -79,7 +79,7 @@ def run_promotion_gate(
     df = pd.read_parquet(features_path)
 
     # Use the holdout month for unbiased comparison
-    with open("params.yaml", "r", encoding="utf-8") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     train_keys = params["dataset_versions"][holdout_version]["train"]
     holdout_month = params["months"][train_keys[-1]]
