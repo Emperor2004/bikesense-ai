@@ -409,7 +409,7 @@ stages:
     deps:
     - path: configs/model.yaml
       hash: md5
-      md5: ab8e37b13450050c7bd3a60ebd7b4261
+      md5: f55953b6158e3640738fea051368a27e
       size: 1195
     - path: data/processed/features.parquet
       hash: md5
@@ -425,8 +425,8 @@ stages:
       size: 1541
     - path: src/models/train.py
       hash: md5
-      md5: b02b5dce3a8778ac8b58103a4486009c
-      size: 12428
+      md5: 63f7dc79e7103e6e2067363b1dec86c4
+      size: 12544
     params:
       config.yaml:
         dataset_version: v7
@@ -629,12 +629,34 @@ stages:
             - m37
             - m38
       configs/model.yaml:
+        lightgbm:
+          experiments:
+          - name: lgbm_shallow
+            n_estimators: 100
+            learning_rate: 0.05
+            num_leaves: 31
+            max_depth: 6
+            random_state: 42
+          - name: lgbm_deep
+            n_estimators: 200
+            learning_rate: 0.03
+            num_leaves: 63
+            max_depth: 8
+            random_state: 42
+          - name: lgbm_regularized
+            n_estimators: 150
+            learning_rate: 0.04
+            num_leaves: 45
+            max_depth: 7
+            reg_alpha: 0.1
+            reg_lambda: 0.1
+            random_state: 42
         ridge:
-          alpha: 2.0
+          alpha: 0.5
         tuning:
           enabled: true
           n_trials: 4
-          random_state: 202
+          random_state: 777
           param_distributions:
             n_estimators:
             - 100
@@ -673,14 +695,14 @@ stages:
     outs:
     - path: reports/evaluation/latest_training_summary.json
       hash: md5
-      md5: 2a23441bce2a7b75487a77d1e01eeeff
-      size: 3069
+      md5: cfb8cab26f8f13d65a6e254957d7c8f8
+      size: 3080
   evaluate:
     cmd: .venv\Scripts\python -m src.models.evaluate
     deps:
     - path: configs/model.yaml
       hash: md5
-      md5: ab8e37b13450050c7bd3a60ebd7b4261
+      md5: f55953b6158e3640738fea051368a27e
       size: 1195
     - path: data/processed/features.parquet
       hash: md5
@@ -688,16 +710,16 @@ stages:
       size: 6339767
     - path: reports/evaluation/latest_training_summary.json
       hash: md5
-      md5: 2a23441bce2a7b75487a77d1e01eeeff
-      size: 3069
+      md5: cfb8cab26f8f13d65a6e254957d7c8f8
+      size: 3080
     - path: src/models/baseline.py
       hash: md5
       md5: 752cdad887303048e87ef02e7de36f7b
       size: 936
     - path: src/models/evaluate.py
       hash: md5
-      md5: e5d28343ff9a55cd61b73763727336f0
-      size: 3906
+      md5: a28a0abaaa5e497c31799f6c1c9f6b1b
+      size: 4272
     - path: src/models/metrics.py
       hash: md5
       md5: a139507a048a0b91284ce505b5ade254
@@ -904,7 +926,7 @@ stages:
             - m37
             - m38
     outs:
-    - path: reports/evaluation/evaluation_v1.md
+    - path: reports/evaluation/latest_evaluation.md
       hash: md5
-      md5: 8cddf145044dfc618af4645e6e70e0c5
+      md5: 7da47a24dc9decf9aa9eb5830d96163c
       size: 486
