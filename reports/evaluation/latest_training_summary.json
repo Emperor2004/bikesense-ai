@@ -1,0 +1,43 @@
+{
+  "best_candidate": {
+    "model_name": "lgbm_regularized",
+    "val_mae": 1.0365,
+    "val_shortfall": 9916.09,
+    "run_id": "c9cb6755d1ba4e3689283034af022042"
+  },
+  "all_runs": [
+    {
+      "model_name": "seasonal_naive",
+      "val_mae": 1.245,
+      "val_shortfall": 13110.0,
+      "run_id": "9bf99fba3e2145ef8ba797b894544a61"
+    },
+    {
+      "model_name": "ridge",
+      "val_mae": 1.0713,
+      "val_shortfall": 11431.93,
+      "run_id": "799591972acb48c2b8e1c346b73a195b"
+    },
+    {
+      "model_name": "lgbm_shallow",
+      "val_mae": 1.0445,
+      "val_shortfall": 10247.03,
+      "run_id": "8ce59a94ecdc4792ba0434ad285c016b"
+    },
+    {
+      "model_name": "lgbm_deep",
+      "val_mae": 1.0397,
+      "val_shortfall": 9784.71,
+      "run_id": "fed69de2ef5b40bcb21f5c1574030aa1"
+    },
+    {
+      "model_name": "lgbm_regularized",
+      "val_mae": 1.0365,
+      "val_shortfall": 9916.09,
+      "run_id": "c9cb6755d1ba4e3689283034af022042"
+    }
+  ],
+  "dataset_version": "v1",
+  "git_commit": "b8877259c5332c13ef1bbbff3761858b515017e5",
+  "dvc_dataset_hash": "md5"
+}
