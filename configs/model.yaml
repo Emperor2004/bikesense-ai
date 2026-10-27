@@ -1,39 +1,77 @@
 target_column: departures
 
 feature_columns:
-  - hour
-  - day_of_week
-  - month
-  - is_holiday
-  - temperature_2m
-  - precipitation
-  - wind_speed_10m
-  - lag_24h
-  - lag_168h
-  - rolling_7d_same_hour_mean
-
+- hour
+- day_of_week
+- month
+- is_holiday
+- temperature_2m
+- precipitation
+- wind_speed_10m
+- lag_24h
+- lag_168h
+- rolling_7d_same_hour_mean
 ridge:
-  alpha: 1.0
+  alpha: 2.0
 
 lightgbm:
   experiments:
-    - name: "lgbm_shallow"
-      n_estimators: 100
-      learning_rate: 0.05
-      num_leaves: 31
-      max_depth: 6
-      random_state: 42
-    - name: "lgbm_deep"
-      n_estimators: 200
-      learning_rate: 0.03
-      num_leaves: 63
-      max_depth: 8
-      random_state: 42
-    - name: "lgbm_regularized"
-      n_estimators: 150
-      learning_rate: 0.04
-      num_leaves: 45
-      max_depth: 7
-      reg_alpha: 0.1
-      reg_lambda: 0.1
-      random_state: 42
+  - name: lgbm_shallow
+    n_estimators: 100
+    learning_rate: 0.05
+    num_leaves: 31
+    max_depth: 6
+    random_state: 42
+  - name: lgbm_deep
+    n_estimators: 200
+    learning_rate: 0.03
+    num_leaves: 63
+    max_depth: 8
+    random_state: 42
+  - name: lgbm_regularized
+    n_estimators: 150
+    learning_rate: 0.04
+    num_leaves: 45
+    max_depth: 7
+    reg_alpha: 0.1
+    reg_lambda: 0.1
+    random_state: 42
+tuning:
+  enabled: true
+  n_trials: 4
+  random_state: 202
+  param_distributions:
+    n_estimators:
+    - 100
+    - 150
+    - 200
+    - 250
+    learning_rate:
+    - 0.02
+    - 0.04
+    - 0.06
+    - 0.08
+    num_leaves:
+    - 31
+    - 45
+    - 63
+    - 80
+    max_depth:
+    - 5
+    - 6
+    - 7
+    - 8
+    reg_alpha:
+    - 0.0
+    - 0.1
+    - 0.5
+    reg_lambda:
+    - 0.0
+    - 0.1
+    - 0.5
+    subsample:
+    - 0.8
+    - 1.0
+    colsample_bytree:
+    - 0.8
+    - 1.0
