@@ -1,10 +1,13 @@
-name: Retrain Pipeline
+name: Model Retraining & DVC Pipeline
 
 on:
+  schedule:
+    # Trigger weekly on Sunday at midnight UTC
+    - cron: "0 0 * * 0"
   workflow_dispatch:
     inputs:
       dataset_version:
-        description: "Dataset version to train on"
+        description: "Dataset version to retrain on"
         required: true
         default: "v1"
         type: choice
@@ -12,25 +15,65 @@ on:
           - v1
           - v2
           - v3
+      force_repro:
+        description: "Force reproduction of all DVC stages (--force)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  retrain:
+  retrain-and-evaluate:
+    name: Retrain, Evaluate & Register Model
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
+          cache: "pip"
+
+      - name: Configure AWS Credentials for DVC S3
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Reproduce pipeline with DVC
+
+      - name: Pull Cached Data from S3
         run: |
-          dvc repro
-      - name: Run training & evaluation
+          dvc pull --no-run-cache || true
+
+      - name: Reproduce DVC Pipeline
         run: |
-          python -m src.models.train --version ${{ inputs.dataset_version }}
-      - name: Register candidate model
+          if [ "${{ inputs.force_repro }}" = "true" ]; then
+            dvc repro --force
+          else
+            dvc repro
+          fi
+
+      - name: Push Updated Data Artifacts to S3
+        run: |
+          dvc push
+
+      - name: Register Candidate in MLflow Registry
         run: |
           python -m src.registry.register
+
+      - name: Run Promotion Gate
+        run: |
+          python -m src.registry.promote || echo "Challenger did not pass promotion gate threshold."
+
+      - name: Upload Training & Evaluation Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-evaluation-reports
+          path: reports/evaluation/
+          retention-days: 14
