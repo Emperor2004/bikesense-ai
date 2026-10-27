@@ -1,50 +1,54 @@
 stages:
   ingest:
-    cmd: python -m src.data.ingest
+    cmd: .venv\Scripts\python -m src.data.ingest
     deps:
       - src/data/ingest.py
       - src/data/validate.py
     params:
-      - months
-      - citibike
-      - stations
+      - config.yaml:
+          - months
+          - citibike
+          - stations
     outs:
       - data/raw/departures_hourly.parquet
 
   weather:
-    cmd: python -m src.data.weather
+    cmd: .venv\Scripts\python -m src.data.weather
     deps:
       - src/data/weather.py
     params:
-      - months
-      - weather
+      - config.yaml:
+          - months
+          - weather
     outs:
       - data/external/weather/
 
   holidays:
-    cmd: python -m src.data.holidays
+    cmd: .venv\Scripts\python -m src.data.holidays
     deps:
       - src/data/holidays.py
     params:
-      - months
+      - config.yaml:
+          - months
     outs:
       - data/external/holidays.parquet
 
   features:
-    cmd: python -m src.features.build_features
+    cmd: .venv\Scripts\python -m src.features.build_features
     deps:
       - src/features/build_features.py
       - data/raw/departures_hourly.parquet
       - data/external/weather/
       - data/external/holidays.parquet
     params:
-      - dataset_version
-      - dataset_versions
+      - config.yaml:
+          - dataset_version
+          - dataset_versions
     outs:
       - data/processed/features.parquet
 
   train:
-    cmd: python -m src.models.train
+    cmd: .venv\Scripts\python -m src.models.train
     deps:
       - src/models/train.py
       - src/models/baseline.py
@@ -52,13 +56,18 @@ stages:
       - configs/model.yaml
       - data/processed/features.parquet
     params:
-      - dataset_version
-      - dataset_versions
-    outs:
-      - reports/evaluation/latest_training_summary.json
+      - config.yaml:
+          - dataset_version
+          - dataset_versions
+      - configs/model.yaml:
+          - ridge
+          - tuning
+    metrics:
+      - reports/evaluation/latest_training_summary.json:
+          cache: false
 
   evaluate:
-    cmd: python -m src.models.evaluate
+    cmd: .venv\Scripts\python -m src.models.evaluate
     deps:
       - src/models/evaluate.py
       - src/models/baseline.py
@@ -67,7 +76,9 @@ stages:
       - data/processed/features.parquet
       - reports/evaluation/latest_training_summary.json
     params:
-      - dataset_version
-      - dataset_versions
+      - config.yaml:
+          - dataset_version
+          - dataset_versions
     outs:
-      - reports/evaluation/evaluation_v1.md
+      - reports/evaluation/evaluation_v1.md:
+          cache: false

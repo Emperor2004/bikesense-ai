@@ -1,18 +1,18 @@
 schema: '2.0'
 stages:
   ingest:
-    cmd: python -m src.data.ingest
+    cmd: .venv\Scripts\python -m src.data.ingest
     deps:
     - path: src/data/ingest.py
       hash: md5
-      md5: 4f3b6944305f4ac81a30c9211d3b740e
+      md5: 15023d7a94e180f53486a1715647712f
       size: 8528
     - path: src/data/validate.py
       hash: md5
       md5: 4341885108a6923356b7482c98ae8f2c
       size: 3319
     params:
-      params.yaml:
+      config.yaml:
         citibike:
           base_url: https://s3.amazonaws.com/tripdata
           file_pattern: JC-{yyyymm}-citibike-tripdata.csv.zip
@@ -36,17 +36,17 @@ stages:
     outs:
     - path: data/raw/departures_hourly.parquet
       hash: md5
-      md5: d9a49d4dff9c41590b9712bfce958eb2
+      md5: e46c889c96c4c9e83ae2ab52e1bc9eff
       size: 335183
   weather:
-    cmd: python -m src.data.weather
+    cmd: .venv\Scripts\python -m src.data.weather
     deps:
     - path: src/data/weather.py
       hash: md5
-      md5: 5e4b960435358c5d33e23ed882ecb122
+      md5: d39bd53f2bfe467d15a09074eca00db8
       size: 2658
     params:
-      params.yaml:
+      config.yaml:
         months:
           m1: 2023-07
           m2: 2023-08
@@ -74,18 +74,18 @@ stages:
     outs:
     - path: data/external/weather/
       hash: md5
-      md5: a02b68545a66ee72f64f0da8b43f4597.dir
+      md5: fe1c9bd328b4f0191698d2e3d555e351.dir
       size: 175841
       nfiles: 14
   holidays:
-    cmd: python -m src.data.holidays
+    cmd: .venv\Scripts\python -m src.data.holidays
     deps:
     - path: src/data/holidays.py
       hash: md5
-      md5: e82998a3297b1478034414682a40ef55
+      md5: 59e6de2250ac44a168507eb019cecccf
       size: 1893
     params:
-      params.yaml:
+      config.yaml:
         months:
           m1: 2023-07
           m2: 2023-08
@@ -104,30 +104,30 @@ stages:
     outs:
     - path: data/external/holidays.parquet
       hash: md5
-      md5: f5c2410619ffcc10e195df99932b74df
+      md5: d8d5d67f1bdddffeb8b2304a1d9b5e25
       size: 90263
   features:
-    cmd: python -m src.features.build_features
+    cmd: .venv\Scripts\python -m src.features.build_features
     deps:
     - path: data/external/holidays.parquet
       hash: md5
-      md5: f5c2410619ffcc10e195df99932b74df
+      md5: d8d5d67f1bdddffeb8b2304a1d9b5e25
       size: 90263
     - path: data/external/weather/
       hash: md5
-      md5: a02b68545a66ee72f64f0da8b43f4597.dir
+      md5: fe1c9bd328b4f0191698d2e3d555e351.dir
       size: 175841
       nfiles: 14
     - path: data/raw/departures_hourly.parquet
       hash: md5
-      md5: d9a49d4dff9c41590b9712bfce958eb2
+      md5: e46c889c96c4c9e83ae2ab52e1bc9eff
       size: 335183
     - path: src/features/build_features.py
       hash: md5
-      md5: 0c3230665e61356e4e75f1605b4ae099
+      md5: 837b6951ba26b6a234d8885a0be096ec
       size: 6478
     params:
-      params.yaml:
+      config.yaml:
         dataset_version: v1
         dataset_versions:
           v1:
@@ -178,5 +178,205 @@ stages:
     outs:
     - path: data/processed/features.parquet
       hash: md5
-      md5: 2c5677e77170963407c9c52b33c69f5d
+      md5: 68d4d9a5c4ef6296b8f519cb87c8d2b3
       size: 1495378
+  train:
+    cmd: .venv\Scripts\python -m src.models.train
+    deps:
+    - path: configs/model.yaml
+      hash: md5
+      md5: ab8e37b13450050c7bd3a60ebd7b4261
+      size: 1195
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 68d4d9a5c4ef6296b8f519cb87c8d2b3
+      size: 1495378
+    - path: src/models/baseline.py
+      hash: md5
+      md5: 752cdad887303048e87ef02e7de36f7b
+      size: 936
+    - path: src/models/metrics.py
+      hash: md5
+      md5: a139507a048a0b91284ce505b5ade254
+      size: 1541
+    - path: src/models/train.py
+      hash: md5
+      md5: 85c68536c03067e4711750f5a67716b2
+      size: 12436
+    params:
+      config.yaml:
+        dataset_version: v1
+        dataset_versions:
+          v1:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            replay:
+            - m9
+            - m10
+          v2:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            replay:
+            - m11
+            - m12
+          v3:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            - m11
+            - m12
+            replay:
+            - m13
+            - m14
+      configs/model.yaml:
+        ridge:
+          alpha: 2.0
+        tuning:
+          enabled: true
+          n_trials: 4
+          random_state: 202
+          param_distributions:
+            n_estimators:
+            - 100
+            - 150
+            - 200
+            - 250
+            learning_rate:
+            - 0.02
+            - 0.04
+            - 0.06
+            - 0.08
+            num_leaves:
+            - 31
+            - 45
+            - 63
+            - 80
+            max_depth:
+            - 5
+            - 6
+            - 7
+            - 8
+            reg_alpha:
+            - 0.0
+            - 0.1
+            - 0.5
+            reg_lambda:
+            - 0.0
+            - 0.1
+            - 0.5
+            subsample:
+            - 0.8
+            - 1.0
+            colsample_bytree:
+            - 0.8
+            - 1.0
+    outs:
+    - path: reports/evaluation/latest_training_summary.json
+      hash: md5
+      md5: 950109f476e41aa4a7361d3dfe3aa01b
+      size: 3069
+  evaluate:
+    cmd: .venv\Scripts\python -m src.models.evaluate
+    deps:
+    - path: configs/model.yaml
+      hash: md5
+      md5: ab8e37b13450050c7bd3a60ebd7b4261
+      size: 1195
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 68d4d9a5c4ef6296b8f519cb87c8d2b3
+      size: 1495378
+    - path: reports/evaluation/latest_training_summary.json
+      hash: md5
+      md5: 950109f476e41aa4a7361d3dfe3aa01b
+      size: 3069
+    - path: src/models/baseline.py
+      hash: md5
+      md5: 752cdad887303048e87ef02e7de36f7b
+      size: 936
+    - path: src/models/evaluate.py
+      hash: md5
+      md5: e5d28343ff9a55cd61b73763727336f0
+      size: 3906
+    - path: src/models/metrics.py
+      hash: md5
+      md5: a139507a048a0b91284ce505b5ade254
+      size: 1541
+    params:
+      config.yaml:
+        dataset_version: v1
+        dataset_versions:
+          v1:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            replay:
+            - m9
+            - m10
+          v2:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            replay:
+            - m11
+            - m12
+          v3:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            - m11
+            - m12
+            replay:
+            - m13
+            - m14
+    outs:
+    - path: reports/evaluation/evaluation_v1.md
+      hash: md5
+      md5: 8cddf145044dfc618af4645e6e70e0c5
+      size: 486
