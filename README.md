@@ -6,6 +6,30 @@ A versioned and monitored MLOps pipeline that forecasts hourly station-level dem
 
 ---
 
+## Table of Contents
+
+1. [What this project is](#1-what-this-project-is)
+2. [Business significance and its limits](#2-business-significance-and-its-limits)
+3. [Forecasting task](#3-forecasting-task)
+4. [Architecture](#4-architecture)
+5. [Tech stack](#5-tech-stack)
+6. [Data sources](#6-data-sources)
+7. [Dataset versions](#7-dataset-versions)
+8. [Repository layout](#8-repository-layout)
+9. [Getting started](#9-getting-started)
+10. [Using the service](#10-using-the-service)
+11. [Model versioning and promotion](#11-model-versioning-and-promotion)
+12. [Monitoring](#12-monitoring)
+13. [Demonstration flow](#13-demonstration-flow)
+14. [Testing](#14-testing)
+15. [CI/CD](#15-cicd)
+16. [Success criteria](#16-success-criteria)
+17. [Known limitations](#17-known-limitations)
+18. [References](#18-references)
+19. [Team](#19-team)
+
+---
+
 ## 1. What this project is
 
 Bike-share operators must move bikes between stations before demand arrives. A forecasting model trained once degrades as seasons, weather and rider behaviour change, and the degradation stays invisible until predictions are compared with the ground truth that arrives later.
@@ -16,7 +40,7 @@ This project builds a **24-hour, station-level departure forecasting service** a
 |---|---|---|
 | Data versioning | Can every dataset be reproduced exactly? | DVC + Git |
 | Model versioning | Which data and code produced the model now in service? Can we roll back? | MLflow tracking + registry |
-| Monitoring | Is the model still accurate this month? | Evidently (Prometheus + Grafana optional) |
+| Monitoring | Is the model still accurate this month? | Evidently AI |
 | Automation | Can retraining and checks run without manual steps? | CI checks + retrain workflow |
 
 The forecasting model is deliberately simple. The point is the lifecycle around it.
@@ -53,31 +77,40 @@ Ingest & validate (pandas + schema tests)
 Data versioning (DVC: dataset v1, v2, v3)
         │
         ▼
+Feature engineering (temporal + weather + lag + rolling)
+        │
+        ▼
 Train & evaluate (baseline, Ridge, LightGBM)
         │
         ▼
 Model versioning (MLflow registry, champion / challenger aliases)
         │
         ▼
-Serving (FastAPI in Docker, loads the champion alias)
+Serving (FastAPI in Docker, dynamically loads the champion alias)
         │
         ▼
-Prediction log ──joined with actual demand 24 h later──► Monitoring (Evidently)
+Prediction log ──joined with actual demand 24 h later──► Monitoring (Evidently AI)
                                                               │
                                                               ▼
-                                                  Alert & retrain workflow
+                                                  Rolling error tracking
+                                                              │
+                                                              ▼
+                                                  Alert engine & retrain workflow
 ```
 
 ## 5. Tech stack
 
 | Layer | Tool |
 |---|---|
+| Language | Python 3.10+ |
 | Data versioning | DVC (local remote) + Git |
 | Tracking and registry | MLflow (local server, SQLite backend) |
-| Modeling | scikit-learn, LightGBM |
-| Serving | FastAPI, Docker Compose |
-| Monitoring | Evidently; Prometheus + Grafana (stretch) |
-| Automation | CI checks and a retrain workflow |
+| Modeling | scikit-learn (Ridge), LightGBM |
+| Serving | FastAPI, Uvicorn, Docker Compose |
+| Monitoring | Evidently AI (data drift, model performance) |
+| Alerting | Custom multi-signal alert engine |
+| Automation | GitHub Actions CI + retrain workflow |
+| Testing | pytest, ruff (linting) |
 
 ## 6. Data sources
 
@@ -105,29 +138,86 @@ Fourteen consecutive months (M1 to M14, chosen to span a seasonal transition) ar
 
 ```
 .
-├── README.md
-├── requirements.txt
-├── Makefile
-├── dvc.yaml                  # pipeline: ingest -> features -> train
-├── dvc.lock                  # pinned content hashes per dataset version
-├── params.yaml
-├── configs/                  # features, model, promotion gate, monitoring
-├── data/                     # raw, external (weather), processed  (DVC-tracked)
-├── notebooks/                # EDA and station selection
+├── README.md                         # This file
+├── requirements.txt                  # Python dependencies
+├── Makefile                          # Convenience targets
+├── dvc.yaml                          # DVC pipeline: ingest → features → train
+├── dvc.lock                          # Pinned content hashes per dataset version
+├── params.yaml                       # Global parameters (dates, stations, etc.)
+├── docker-compose.yml                # Compose orchestration for service + MLflow
+│
+├── configs/
+│   ├── features.yaml                 # Feature engineering configuration
+│   ├── model.yaml                    # Model hyperparameters (Ridge, LightGBM)
+│   ├── gate.yaml                     # Promotion gate thresholds
+│   └── monitoring.yaml               # Drift and alerting thresholds
+│
+├── data/                             # DVC-tracked data directories
+│   ├── raw/                          # Ingested Citi Bike trip data
+│   ├── external/                     # Weather data, holiday calendar
+│   ├── processed/                    # Feature-engineered datasets
+│   └── predictions/                  # Prediction logs from service
+│
 ├── src/
-│   ├── data/                 # ingest, validate, weather, holidays
-│   ├── features/             # feature builder
-│   ├── models/               # baseline, train, evaluate, metrics
-│   ├── registry/             # register, promote, rollback
-│   ├── replay/               # replay driver (simulated production time)
-│   └── monitoring/           # actuals join, rolling error, drift report, alerts
-├── service/                  # FastAPI app and Dockerfile
-├── monitoring/               # Prometheus and Grafana config (optional)
-├── docker-compose.yml
-├── tests/                    # data, features, models, registry, service, monitoring
-├── scripts/                  # registry audit, fresh-clone test, demo runner
-├── reports/                  # evaluation and monitoring outputs
-└── docs/                     # architecture, lineage report, model card, slides
+│   ├── data/                         # Ingestion, validation, weather, holidays
+│   │   ├── ingest.py                 # Citi Bike data downloader
+│   │   ├── validate.py               # Schema & quality checks
+│   │   ├── weather.py                # Open-Meteo API client
+│   │   └── holidays.py               # Holiday calendar builder
+│   ├── features/
+│   │   └── build_features.py         # Temporal, weather, lag, rolling features
+│   ├── models/
+│   │   ├── baseline.py               # Seasonal-naive baseline
+│   │   ├── train.py                  # Time-ordered training + MLflow logging
+│   │   ├── evaluate.py               # Evaluation report generator
+│   │   └── metrics.py                # MAE, RMSE, shortfall computations
+│   ├── registry/
+│   │   ├── register.py               # Register best run as challenger
+│   │   ├── promote.py                # Promotion gate (champion vs challenger)
+│   │   └── rollback.py               # Instant champion rollback
+│   ├── replay/
+│   │   └── replay_driver.py          # Simulated production replay
+│   └── monitoring/
+│       ├── join_actuals.py            # 24h delayed ground truth join
+│       ├── rolling_error.py           # Rolling 7-day MAE tracker
+│       ├── drift_report.py            # Evidently AI drift report generator
+│       └── alerts.py                  # Multi-signal alert engine
+│
+├── service/                           # FastAPI microservice
+│   ├── Dockerfile                     # Container specification
+│   └── app/
+│       ├── main.py                    # FastAPI app (/health, /model-info, /forecast)
+│       ├── schemas.py                 # Pydantic request/response models
+│       ├── model_loader.py            # Dynamic champion loader from MLflow
+│       └── prediction_log.py          # Thread-safe prediction logger
+│
+├── tests/                             # 38 unit and integration tests
+│   ├── data/                          # Schema and validation tests
+│   ├── features/                      # Feature engineering tests
+│   ├── models/                        # Metrics, baseline, training tests
+│   ├── registry/                      # Promotion gate and rollback tests
+│   ├── service/                       # API endpoint and prediction log tests
+│   └── monitoring/                    # Alerts, join, rolling error tests
+│
+├── scripts/
+│   ├── run_demo.sh                    # End-to-end demonstration script
+│   ├── registry_audit.py              # Lineage audit for all registered versions
+│   └── fresh_clone_test.sh            # Reproducibility verification
+│
+├── docs/
+│   ├── architecture.md                # System architecture documentation
+│   ├── model_card.md                  # Model card (inputs, outputs, metrics)
+│   ├── data_card.md                   # Data card (sources, schema, versions)
+│   ├── lineage_report.md              # End-to-end lineage documentation
+│   └── monitoring_guide.md            # Operational monitoring runbook
+│
+├── reports/                           # Generated evaluation and monitoring outputs
+│
+└── .github/
+    ├── CODEOWNERS                     # Code ownership by team member
+    └── workflows/
+        ├── ci.yml                     # Lint + test on every push/PR
+        └── retrain.yml                # Automated retrain on dataset update
 ```
 
 ## 9. Getting started
@@ -135,7 +225,9 @@ Fourteen consecutive months (M1 to M14, chosen to span a seasonal transition) ar
 **Prerequisites:** Python 3.10+, Docker and Docker Compose, Git, DVC, about 10 GB free disk.
 
 ```bash
-# 1. Environment
+# 1. Clone and set up environment
+git clone https://github.com/Emperor2004/bikesense-ai.git
+cd bikesense-ai
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -146,11 +238,11 @@ dvc repro
 # 3. Start MLflow tracking server
 mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000
 
-# 4. Start the forecasting service and monitoring stack
+# 4. Start the forecasting service
 docker compose up --build
 ```
 
-Convenience targets:
+**Convenience targets (Makefile):**
 
 ```bash
 make data         # run ingest + features
@@ -158,35 +250,50 @@ make train        # train baseline, Ridge, LightGBM and log to MLflow
 make register     # register best run as challenger
 make serve        # start the FastAPI service
 make replay       # replay the next window as simulated production
-make monitor      # generate Evidently reports
-make test         # run the unit and schema tests
+make monitor      # generate Evidently drift reports
+make test         # run ruff linting + pytest
 make demo         # run the end-to-end demonstration
+make clean        # remove generated data files
 ```
 
 ## 10. Using the service
 
 ```bash
-# Health check
+# Health check — returns service status, loaded champion version, and uptime
 curl http://localhost:8000/health
 
-# 24-hour forecast for one station
+# 24-hour forecast for a specific station and date
 curl "http://localhost:8000/forecast?station_id=<STATION_ID>&date=<YYYY-MM-DD>"
 
-# Which model is serving, and where did it come from?
+# Model lineage — which model is serving, and where did it come from?
 curl http://localhost:8000/model-info
 ```
 
-`/model-info` returns the champion version, Git commit and dataset hash. Every prediction is appended to the prediction log and later joined with actual demand.
+### API Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Service health, champion version, uptime |
+| `/model-info` | GET | Champion version, Git commit, DVC dataset hash, run ID |
+| `/forecast` | GET | 24-hour station-level departure forecast |
+
+Every prediction is appended to a thread-safe prediction log (`data/predictions/prediction_log.csv`) and later joined with actual demand for monitoring.
 
 ## 11. Model versioning and promotion
 
-- Every run logs parameters, metrics, feature list, Git commit, dataset version (DVC hash) and the model artifact.
-- The best run is registered as **challenger**. The service always loads the **champion** alias, so promotion and rollback are alias changes, not code redeployments.
-- **Promotion gate:** a challenger replaces the champion only if its MAE on the latest held-out month is lower by a configured margin (initially 3%, set in `configs/gate.yaml`). A human approves the alias change.
+- Every training run logs parameters, metrics, feature list, Git commit, dataset version (DVC hash) and the model artifact to MLflow.
+- The best run is registered as **challenger**. The service dynamically loads the **champion** alias, so promotion and rollback are alias changes — not code redeployments.
+- **Promotion gate:** a challenger replaces the champion only if its MAE on the latest held-out month is lower by a configured margin (default 3%, set in `configs/gate.yaml`). A shortfall guardrail prevents promotion if under-forecast risk increases.
 
 ```bash
+# Promote a challenger to champion (runs gate checks automatically)
 python -m src.registry.promote --challenger <VERSION>
-python -m src.registry.rollback --to <VERSION>     # one-step rollback, no redeploy
+
+# Instant rollback — repoints the champion alias, no redeploy needed
+python -m src.registry.rollback --to <VERSION>
+
+# Audit lineage for all registered model versions
+python scripts/registry_audit.py
 ```
 
 ## 12. Monitoring
@@ -195,22 +302,67 @@ During replay the service issues a forecast each day. Actual demand is joined to
 
 | Layer | Signal | Method | Action |
 |---|---|---|---|
-| Input drift | Weather, calendar, lag features vs reference | Evidently data drift report | Flag when share of drifted features exceeds threshold |
-| Prediction drift | Distribution of predicted demand | Evidently | Informational |
-| Model performance | Rolling 7-day MAE vs reference MAE | Evidently or custom metric | Alert above 1.25x reference (configurable) |
-| Service health | Latency, request count, errors | Prometheus + Grafana (stretch) | Informational |
+| Input drift | Weather, calendar, lag features vs reference | Evidently AI data drift report (KS/Wasserstein) | `ALERT-101`: Flag when share of drifted features > 30% |
+| Model performance | Rolling 7-day MAE vs reference MAE | Custom rolling error tracker | `ALERT-102`: Alert when MAE > 1.25× reference |
+| Operational risk | Under-forecast shortfall surge | Actuals join pipeline | `ALERT-103`: Alert on shortfall spike |
 
-Reports are written to `reports/monitoring/` as HTML.
+**Monitoring outputs:**
+- Evidently HTML reports → `reports/monitoring/`
+- Drift summary JSON → `reports/monitoring/drift_summary.json`
+- Active alerts → `reports/monitoring/active_alerts.json`
+- Rolling error metrics → `reports/monitoring/rolling_performance.csv`
+
+All monitoring thresholds are configurable in `configs/monitoring.yaml`.
+
+For detailed operational procedures, see the [Monitoring Guide](docs/monitoring_guide.md).
 
 ## 13. Demonstration flow
 
-1. Champion trained on v1 serves forecasts; show its lineage (Git commit and data hash).
-2. Replay the next window: monitoring shows input drift and rising rolling MAE.
-3. Release dataset v2 and run the retrain workflow; compare challenger and champion in MLflow.
-4. Apply the promotion gate and switch the champion alias; the service now serves the new model.
-5. Roll back by repointing the alias and show recovery without a code change.
+1. **Champion serves forecasts** — trained on v1; show its lineage (Git commit and DVC data hash) via `/model-info`.
+2. **Replay production window** — monitoring detects input drift and rising rolling MAE.
+3. **Release dataset v2 and retrain** — compare challenger and champion in MLflow UI.
+4. **Apply the promotion gate** — switch the champion alias; the service hot-loads the new model without restart.
+5. **Roll back** — repoint the alias and verify recovery without a code change or redeployment.
 
-## 14. Success criteria
+```bash
+# Run the full end-to-end demo
+bash scripts/run_demo.sh
+```
+
+## 14. Testing
+
+The project includes **38 tests** covering all three stages:
+
+| Test Module | Tests | Scope |
+|---|---|---|
+| `tests/data/` | 7 | Schema validation, date checks, null/negative guards, station coverage |
+| `tests/features/` | 5 | Temporal features, lag leakage prevention, rolling means, holiday flags |
+| `tests/models/` | 9 | MAE/RMSE/shortfall metrics, baseline predictions, time-ordered splits, lineage helpers |
+| `tests/registry/` | 6 | Promotion gate (approval, rejection, shortfall guardrail), rollback scenarios |
+| `tests/service/` | 5 | Health, model-info, forecast endpoints, invalid input handling, prediction logging |
+| `tests/monitoring/` | 6 | Alert triggers, actuals join, rolling error computation |
+
+```bash
+# Run the full test suite with linting
+make test
+
+# Or individually
+ruff check src/ tests/       # Lint
+pytest tests/ -v --tb=short  # Tests
+```
+
+## 15. CI/CD
+
+Two GitHub Actions workflows automate quality and retraining:
+
+| Workflow | Trigger | Steps |
+|---|---|---|
+| `ci.yml` | Every push and pull request | Install dependencies → ruff lint → pytest |
+| `retrain.yml` | Dataset version update (manual dispatch) | `dvc repro` → train → evaluate → register challenger |
+
+Code ownership is enforced via `.github/CODEOWNERS`, mapping each stage to its responsible team member.
+
+## 16. Success criteria
 
 | Criterion | Target |
 |---|---|
@@ -221,14 +373,14 @@ Reports are written to `reports/monitoring/` as HTML.
 | Detection | An alert fires within one monitoring window (7 days) of a visible degradation |
 | Rollback | Reverting the champion alias restores service in under 5 minutes, no redeploy |
 
-## 15. Known limitations
+## 17. Known limitations
 
 - **Censored demand:** trip data understates demand where stations were empty.
 - **Weather optimism:** historical weather is reanalysis (ERA5-based), which a live system would replace with forecasts, so accuracy is likely optimistic.
 - **Drift depends on the chosen months:** observed drift is reported honestly; if real drift is weak, a clearly labelled injected shift is used as a secondary test only.
 - **Local deployment only:** no Kubernetes, cloud, feature store, streaming feed, rebalancing optimisation or deep learning.
 
-## 16. References
+## 18. References
 
 - Sculley, D. et al. (2015). *Hidden Technical Debt in Machine Learning Systems.* NeurIPS 28.
 - Citi Bike System Data and NYCBS Data Use Policy: https://citibikenyc.com/system-data
@@ -236,12 +388,12 @@ Reports are written to `reports/monitoring/` as HTML.
 - Ataç, S., Obrenović, N., Bierlaire, M. (2020). *Vehicle sharing systems: Does demand forecasting yield a better service?* STRC.
 - *Predictive and Prescriptive Performance of Bike-Sharing Demand Forecasts for Inventory Management.* arXiv:2108.00858.
 - Hersbach, H. et al. (2020). The ERA5 global reanalysis. *QJRMS*, 146(730), 1999-2049.
-- Official documentation: DVC, MLflow, Evidently AI.
+- Official documentation: [DVC](https://dvc.org/doc), [MLflow](https://mlflow.org/docs/latest/index.html), [Evidently AI](https://docs.evidentlyai.com/).
 
-## 17. Team
+## 19. Team
 
-| Role | Focus |
-|---|---|
-| Member A: Data and automation | Ingestion, features, DVC pipeline, dataset versions, replay, CI |
-| Member B: Modeling and registry | Models, evaluation, MLflow registry, promotion gate, rollback |
-| Member C: Serving and monitoring | FastAPI service, Docker, prediction log, Evidently, alerts |
+| Member | Role | Focus |
+|---|---|---|
+| Om Narayan Pandit | Data and Automation | Ingestion, features, DVC pipeline, dataset versions, replay, CI |
+| Pranjali Vishwakarma | Modeling and Registry | Models, evaluation, MLflow registry, promotion gate, rollback |
+| Rajat Dwivedi | Serving and Monitoring | FastAPI service, Docker, prediction log, Evidently, alerts |

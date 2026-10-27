@@ -1,0 +1,36 @@
+monitoring:
+  # Reference dataset: training data of current champion
+  reference_data_path: "data/processed/features_v1.parquet"
+  prediction_log_path: "data/predictions/prediction_log.csv"
+  joined_actuals_path: "data/predictions/monitored_actuals.parquet"
+  reports_dir: "reports/monitoring"
+
+  # Rolling performance evaluation
+  rolling_window_days: 7
+  rolling_window_hours: 168
+
+  # Alert Thresholds (Calibrated from v1 baseline)
+  thresholds:
+    # Trigger warning alert if share of drifted input features exceeds 30%
+    drift_share_threshold: 0.30
+    drift_stat_test_p_value: 0.05
+
+    # Trigger critical alert if rolling 7-day MAE exceeds 1.25x the champion's reference MAE
+    mae_degradation_factor: 1.25
+
+    # Trigger high alert if shortfall increases by > 20% over expected baseline
+    shortfall_surge_factor: 1.20
+
+  features_to_monitor:
+    numerical:
+      - temperature_2m
+      - precipitation
+      - wind_speed_10m
+      - lag_24h
+      - lag_168h
+      - rolling_7d_same_hour_mean
+    categorical:
+      - hour
+      - day_of_week
+      - month
+      - is_holiday
