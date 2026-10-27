@@ -86,8 +86,8 @@ def run_promotion_gate(
     df["ym"] = pd.to_datetime(df["datetime_hour"]).dt.strftime("%Y-%m")
     holdout_df = df[df["ym"] == holdout_month].copy()
 
-    champ_uri = f"models:/{model_name}@{champion_ver}"
-    chall_uri = f"models:/{model_name}@{challenger_ver}"
+    champ_uri = f"models:/{model_name}/{champion_ver}" if str(champion_ver).isdigit() else f"models:/{model_name}@{champion_ver}"
+    chall_uri = f"models:/{model_name}/{challenger_ver}" if str(challenger_ver).isdigit() else f"models:/{model_name}@{challenger_ver}"
 
     print(f"Evaluating both models on holdout month {holdout_month} ({len(holdout_df)} records)...")
     champ_metrics = evaluate_model_on_data(champ_uri, holdout_df, feature_cols, target_col)
