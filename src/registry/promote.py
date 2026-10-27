@@ -27,11 +27,16 @@ def evaluate_model_on_data(
 
 
 def run_promotion_gate(
-    holdout_version: str = "v1",
+    holdout_version: str | None = None,
     auto_approve: bool = False,
     config_path: Path = Path("configs/gate.yaml"),
 ) -> bool:
     """Run promotion gate comparing @champion and @challenger models."""
+    with open("config.yaml", "r", encoding="utf-8") as f:
+        config_params = yaml.safe_load(f)
+    if holdout_version is None:
+        holdout_version = config_params.get("dataset_version", "v1")
+
     with open(config_path, "r", encoding="utf-8") as f:
         gate_cfg = yaml.safe_load(f)["gate"]
     with open("configs/model.yaml", "r", encoding="utf-8") as f:
@@ -141,7 +146,7 @@ def run_promotion_gate(
 
 def main():
     parser = argparse.ArgumentParser(description="Run promotion gate comparison.")
-    parser.add_argument("--version", type=str, default="v1", help="Dataset version for holdout evaluation")
+    parser.add_argument("--version", type=str, default=None, help="Dataset version for holdout evaluation (defaults to config.yaml)")
     parser.add_argument("--auto-approve", action="store_true", help="Auto-approve promotion if gate passes")
     args = parser.parse_args()
 

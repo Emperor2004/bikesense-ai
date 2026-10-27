@@ -13,13 +13,15 @@ from src.models.metrics import compute_all_metrics
 
 
 def evaluate_window(
-    dataset_version: str = "v1",
+    dataset_version: str | None = None,
     model_alias: str = "champion",
     output_dir: Path = Path("reports/evaluation"),
 ) -> pd.DataFrame:
     """Evaluate models on the replay window and generate markdown reports."""
     with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
+    if dataset_version is None:
+        dataset_version = params.get("dataset_version", "v1")
     with open("configs/model.yaml", "r", encoding="utf-8") as f:
         model_cfg = yaml.safe_load(f)
 
@@ -81,21 +83,26 @@ def evaluate_window(
     # Markdown report output
     output_dir.mkdir(parents=True, exist_ok=True)
     report_file = output_dir / f"evaluation_{dataset_version}.md"
+    latest_file = output_dir / "latest_evaluation.md"
+    content = (
+        f"# Evaluation Report — Dataset Version {dataset_version}\n\n"
+        f"**Evaluation Window (Replay):** {', '.join(replay_months)}\n"
+        f"**Total Hourly Records Evaluated:** {len(eval_df):,}\n\n"
+        "## Overall Window Performance\n\n"
+        f"{summary_df.to_markdown(index=False)}\n\n---\n"
+    )
     with open(report_file, "w", encoding="utf-8") as f:
-        f.write(f"# Evaluation Report — Dataset Version {dataset_version}\n\n")
-        f.write(f"**Evaluation Window (Replay):** {', '.join(replay_months)}\n")
-        f.write(f"**Total Hourly Records Evaluated:** {len(eval_df):,}\n\n")
-        f.write("## Overall Window Performance\n\n")
-        f.write(summary_df.to_markdown(index=False))
-        f.write("\n\n---\n")
+        f.write(content)
+    with open(latest_file, "w", encoding="utf-8") as f:
+        f.write(content)
 
-    print(f"Evaluation report generated at: {report_file}")
+    print(f"Evaluation report generated at: {report_file} and {latest_file}")
     return summary_df
 
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate forecasting models.")
-    parser.add_argument("--version", type=str, default="v1", help="Dataset version (v1, v2, v3)")
+    parser.add_argument("--version", type=str, default=None, help="Dataset version (defaults to config.yaml)")
     parser.add_argument("--alias", type=str, default="champion", help="Model alias in MLflow registry")
     args = parser.parse_args()
     evaluate_window(dataset_version=args.version, model_alias=args.alias)

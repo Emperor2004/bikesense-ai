@@ -82,10 +82,12 @@ def time_ordered_train_val_split(
     return train_df, val_df
 
 
-def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
+def train_and_log_models(dataset_version: str | None = None) -> dict[str, Any]:
     """Train Baseline, Ridge, and LightGBM models, logging runs to MLflow."""
     with open("config.yaml", "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
+    if dataset_version is None:
+        dataset_version = params.get("dataset_version", "v1")
     with open("configs/model.yaml", "r", encoding="utf-8") as f:
         model_cfg = yaml.safe_load(f)
 
@@ -305,7 +307,7 @@ def train_and_log_models(dataset_version: str = "v1") -> dict[str, Any]:
 
 def main():
     parser = argparse.ArgumentParser(description="Train demand forecasting models.")
-    parser.add_argument("--version", type=str, default="v1", help="Dataset version (v1, v2, v3)")
+    parser.add_argument("--version", type=str, default=None, help="Dataset version (defaults to config.yaml)")
     args = parser.parse_args()
     train_and_log_models(dataset_version=args.version)
 

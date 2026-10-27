@@ -62,6 +62,7 @@ stages:
       - configs/model.yaml:
           - ridge
           - tuning
+          - lightgbm
     metrics:
       - reports/evaluation/latest_training_summary.json:
           cache: false
@@ -80,5 +81,5 @@ stages:
           - dataset_version
           - dataset_versions
     outs:
-      - reports/evaluation/evaluation_v1.md:
+      - reports/evaluation/latest_evaluation.md:
           cache: false
