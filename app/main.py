@@ -13,6 +13,7 @@ import os
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
+import json
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -32,6 +33,7 @@ from service.app.schemas import (
     HealthResponse,
     HourlyForecast,
     ModelInfoResponse,
+    StationItem,
 )
 
 START_TIME = time.time()
@@ -189,6 +191,24 @@ def get_feature_matrix_for_date(station_id: str, date_str: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+@app.get("/stations", response_model=list[StationItem], tags=["Stations"])
+def get_stations():
+    """Retrieve list of all 30 top Citi Bike stations with human-readable names."""
+    names_path = Path("data/processed/station_names.json")
+    if names_path.exists():
+        with open(names_path, "r", encoding="utf-8") as f:
+            station_dict = json.load(f)
+    else:
+        station_dict = {"JC013": "Marin Light Rail", "JC014": "Grove St PATH"}
+
+    hubs = {"JC115", "HB102", "HB101", "JC066", "JC116", "JC104"}
+    items = [
+        StationItem(id=sid, name=sname, is_hub=(sid in hubs))
+        for sid, sname in station_dict.items()
+    ]
+    return sorted(items, key=lambda x: (not x.is_hub, x.name))
+
+
 @app.get("/forecast", response_model=ForecastResponse, tags=["Forecasting"])
 def forecast(
     station_id: str = Query(..., description="Canonical Citi Bike station identifier"),
@@ -216,6 +236,36 @@ def forecast(
         dt_hour = f"{date} {h:02d}:00:00"
         log_items.append({"datetime_hour": dt_hour, "predicted": p_rounded})
 
+    # Baseline forecasts: lag_168h represents seasonal-naive heuristic (same hour 1 week ago)
+    baseline_vals = feature_df.get("lag_168h", pd.Series(preds)).to_numpy()
+    baseline_forecasts = [
+        HourlyForecast(hour=h, predicted_departures=round(float(max(0.0, b)), 2))
+        for h, b in enumerate(baseline_vals)
+    ]
+
+    # Compute morning peak (hours 6 to 11) and evening peak (hours 16 to 21)
+    morning_hours = list(range(6, 12))
+    evening_hours = list(range(16, 22))
+    peak_morning = max(morning_hours, key=lambda h: preds[h])
+    peak_evening = max(evening_hours, key=lambda h: preds[h])
+
+    # Formulate practical rebalancing recommendation
+    peak_morning_val = preds[peak_morning]
+    peak_evening_val = preds[peak_evening]
+    if peak_morning_val >= 15.0 or peak_evening_val >= 15.0:
+        rec = f"High demand alert: Recommend staging at least {int(np.ceil(max(peak_morning_val, peak_evening_val) * 1.2))} bicycles before peak commute ({peak_morning:02d}:00 / {peak_evening:02d}:00)."
+    elif peak_morning_val >= 6.0:
+        rec = f"Moderate demand: Stage {int(np.ceil(peak_morning_val))} bicycles prior to {peak_morning:02d}:00 morning peak."
+    else:
+        rec = "Normal operating baseline: Maintain standard float of 5 bicycles."
+
+    # Look up station name
+    station_names_file = Path("data/processed/station_names.json")
+    station_name = station_id
+    if station_names_file.exists():
+        with open(station_names_file, "r", encoding="utf-8") as f:
+            station_name = json.load(f).get(station_id, station_id)
+
     logger.log_forecast(
         station_id=station_id,
         issued_at=issued_at,
@@ -228,6 +278,7 @@ def forecast(
 
     return ForecastResponse(
         station_id=station_id,
+        station_name=station_name,
         date=date,
         model_version=metadata["champion_version"],
         git_commit=metadata["git_commit"],
@@ -235,6 +286,10 @@ def forecast(
         issued_at=issued_at,
         total_predicted_departures=total_predicted,
         forecasts=hourly_forecasts,
+        baseline_forecasts=baseline_forecasts,
+        peak_morning_hour=peak_morning,
+        peak_evening_hour=peak_evening,
+        rebalancing_recommendation=rec,
     )
 
 

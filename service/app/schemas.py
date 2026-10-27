@@ -11,10 +11,19 @@ class HourlyForecast(BaseModel):
     predicted_departures: float = Field(..., ge=0.0, description="Predicted departure demand")
 
 
+class StationItem(BaseModel):
+    """Citi Bike Station representation."""
+
+    id: str = Field(..., description="Unique station alphanumeric identifier")
+    name: str = Field(..., description="Human-readable station street/hub name")
+    is_hub: bool = Field(False, description="Flag indicating if station is a primary transit hub")
+
+
 class ForecastResponse(BaseModel):
     """Response schema for a 24-hour departure forecast request."""
 
     station_id: str
+    station_name: str | None = None
     date: str
     model_version: str
     git_commit: str
@@ -22,6 +31,10 @@ class ForecastResponse(BaseModel):
     issued_at: str
     total_predicted_departures: float
     forecasts: list[HourlyForecast]
+    baseline_forecasts: list[HourlyForecast] | None = None
+    peak_morning_hour: int | None = None
+    peak_evening_hour: int | None = None
+    rebalancing_recommendation: str | None = None
 
 
 class HealthResponse(BaseModel):
