@@ -1,0 +1,8 @@
+gate:
+  metric: "mae"
+  improvement_margin_pct: 3.0       # Challenger must beat Champion by at least 3.0%
+  require_shortfall_non_worse: true # Shortfall must not increase by > 5.0%
+  max_shortfall_increase_pct: 5.0
+  require_human_approval: true      # Prompt for approval or --auto-approve in automated CI
+  model_name: "bikesense-demand-forecaster"
+  mlflow_tracking_uri: "sqlite:///mlflow.db"
