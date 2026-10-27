@@ -1,34 +1,98 @@
 # ─── Month definitions ───
-# M1–M14: July 2023 through August 2024
+# M1–M38: July 2023 through August 2026
 months:
-  m1: "2023-07"
-  m2: "2023-08"
-  m3: "2023-09"
-  m4: "2023-10"
-  m5: "2023-11"
-  m6: "2023-12"
-  m7: "2024-01"
-  m8: "2024-02"
-  m9: "2024-03"
+  m1:  "2023-07"
+  m2:  "2023-08"
+  m3:  "2023-09"
+  m4:  "2023-10"
+  m5:  "2023-11"
+  m6:  "2023-12"
+  m7:  "2024-01"
+  m8:  "2024-02"
+  m9:  "2024-03"
   m10: "2024-04"
   m11: "2024-05"
   m12: "2024-06"
   m13: "2024-07"
   m14: "2024-08"
+  m15: "2024-09"
+  m16: "2024-10"
+  m17: "2024-11"
+  m18: "2024-12"
+  m19: "2025-01"
+  m20: "2025-02"
+  m21: "2025-03"
+  m22: "2025-04"
+  m23: "2025-05"
+  m24: "2025-06"
+  m25: "2025-07"
+  m26: "2025-08"
+  m27: "2025-09"
+  m28: "2025-10"
+  m29: "2025-11"
+  m30: "2025-12"
+  m31: "2026-01"
+  m32: "2026-02"
+  m33: "2026-03"
+  m34: "2026-04"
+  m35: "2026-05"
+  m36: "2026-06"
+  m37: "2026-07"
+  m38: "2026-08"
 
 # ─── Dataset versions ───
-dataset_version: "v1"  # active version for dvc repro
+# Rolling-window strategy: each version adds ~6 months of training data
+# with the next 2 months held out for replay/validation
+dataset_version: "v7"  # active version — uses maximum available data
 
 dataset_versions:
+  # v1: Original baseline (Jul 2023 – Apr 2024)
   v1:
     train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8"]
     replay: ["m9", "m10"]
+
+  # v2: +6 months (Jul 2023 – Jun 2024 train, Jul–Aug 2024 replay)
   v2:
-    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10"]
-    replay: ["m11", "m12"]
-  v3:
     train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"]
     replay: ["m13", "m14"]
+
+  # v3: +6 months (Jul 2023 – Dec 2024 train, Jan–Feb 2025 replay)
+  v3:
+    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10",
+            "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18"]
+    replay: ["m19", "m20"]
+
+  # v4: +6 months (Jul 2023 – Jun 2025 train, Jul–Aug 2025 replay)
+  v4:
+    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10",
+            "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18",
+            "m19", "m20", "m21", "m22", "m23", "m24"]
+    replay: ["m25", "m26"]
+
+  # v5: +6 months (Jul 2023 – Dec 2025 train, Jan–Feb 2026 replay)
+  v5:
+    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10",
+            "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18",
+            "m19", "m20", "m21", "m22", "m23", "m24", "m25", "m26",
+            "m27", "m28", "m29", "m30"]
+    replay: ["m31", "m32"]
+
+  # v6: +4 months (Jul 2023 – Apr 2026 train, May–Jun 2026 replay)
+  v6:
+    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10",
+            "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18",
+            "m19", "m20", "m21", "m22", "m23", "m24", "m25", "m26",
+            "m27", "m28", "m29", "m30", "m31", "m32", "m33", "m34"]
+    replay: ["m35", "m36"]
+
+  # v7: LATEST — full dataset (Jul 2023 – Jun 2026 train, Jul–Aug 2026 replay)
+  v7:
+    train: ["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10",
+            "m11", "m12", "m13", "m14", "m15", "m16", "m17", "m18",
+            "m19", "m20", "m21", "m22", "m23", "m24", "m25", "m26",
+            "m27", "m28", "m29", "m30", "m31", "m32", "m33", "m34",
+            "m35", "m36"]
+    replay: ["m37", "m38"]
 
 # ─── Station selection ───
 stations:
