@@ -1,0 +1,44 @@
+stages:
+  ingest:
+    cmd: python -m src.data.ingest
+    deps:
+      - src/data/ingest.py
+      - src/data/validate.py
+    params:
+      - months
+      - citibike
+      - stations
+    outs:
+      - data/raw/departures_hourly.parquet
+
+  weather:
+    cmd: python -m src.data.weather
+    deps:
+      - src/data/weather.py
+    params:
+      - months
+      - weather
+    outs:
+      - data/external/weather/
+
+  holidays:
+    cmd: python -m src.data.holidays
+    deps:
+      - src/data/holidays.py
+    params:
+      - months
+    outs:
+      - data/external/holidays.parquet
+
+  features:
+    cmd: python -m src.features.build_features
+    deps:
+      - src/features/build_features.py
+      - data/raw/departures_hourly.parquet
+      - data/external/weather/
+      - data/external/holidays.parquet
+    params:
+      - dataset_version
+      - dataset_versions
+    outs:
+      - data/processed/features.parquet

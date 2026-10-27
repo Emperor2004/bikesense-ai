@@ -1,0 +1,51 @@
+# GitHub CODEOWNERS
+# Rule: Every file and folder has exactly one owner to avoid merge conflicts.
+
+# Member A: Data and Automation
+requirements.txt                     @member-a
+Makefile                             @member-a
+.gitignore                           @member-a
+params.yaml                          @member-a
+dvc.yaml                             @member-a
+dvc.lock                             @member-a
+.dvc/                                @member-a
+configs/features.yaml                @member-a
+src/data/                            @member-a
+src/features/                        @member-a
+src/replay/                          @member-a
+tests/data/                          @member-a
+tests/features/                      @member-a
+.github/workflows/ci.yml             @member-a
+.github/workflows/retrain.yml        @member-a
+.github/CODEOWNERS                   @member-a
+scripts/fresh_clone_test.sh          @member-a
+docs/data_card.md                    @member-a
+docs/lineage_report.md               @member-a
+docs/slides/01_*.pdf                 @member-a
+
+# Member B: Modeling and Registry
+configs/model.yaml                   @member-b
+configs/gate.yaml                    @member-b
+notebooks/                           @member-b
+src/models/                          @member-b
+src/registry/                        @member-b
+tests/models/                        @member-b
+tests/registry/                      @member-b
+scripts/registry_audit.py            @member-b
+scripts/run_demo.sh                  @member-b
+reports/evaluation/                  @member-b
+docs/architecture.md                 @member-b
+docs/model_card.md                   @member-b
+docs/slides/02_*.pdf                 @member-b
+
+# Member C: Serving and Monitoring
+service/                             @member-c
+docker-compose.yml                   @member-c
+configs/monitoring.yaml              @member-c
+src/monitoring/                      @member-c
+monitoring/                          @member-c
+tests/service/                       @member-c
+tests/monitoring/                    @member-c
+reports/monitoring/                  @member-c
+docs/monitoring_guide.md             @member-c
+docs/slides/03_*.pdf                 @member-c

@@ -1,0 +1,36 @@
+name: Retrain Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_version:
+        description: "Dataset version to train on"
+        required: true
+        default: "v1"
+        type: choice
+        options:
+          - v1
+          - v2
+          - v3
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Reproduce pipeline with DVC
+        run: |
+          dvc repro
+      - name: Run training & evaluation
+        run: |
+          python -m src.models.train --version ${{ inputs.dataset_version }}
+      - name: Register candidate model
+        run: |
+          python -m src.registry.register

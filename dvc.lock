@@ -1,0 +1,182 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python -m src.data.ingest
+    deps:
+    - path: src/data/ingest.py
+      hash: md5
+      md5: 4f3b6944305f4ac81a30c9211d3b740e
+      size: 8528
+    - path: src/data/validate.py
+      hash: md5
+      md5: 4341885108a6923356b7482c98ae8f2c
+      size: 3319
+    params:
+      params.yaml:
+        citibike:
+          base_url: https://s3.amazonaws.com/tripdata
+          file_pattern: JC-{yyyymm}-citibike-tripdata.csv.zip
+        months:
+          m1: 2023-07
+          m2: 2023-08
+          m3: 2023-09
+          m4: 2023-10
+          m5: 2023-11
+          m6: 2023-12
+          m7: 2024-01
+          m8: 2024-02
+          m9: 2024-03
+          m10: 2024-04
+          m11: 2024-05
+          m12: 2024-06
+          m13: 2024-07
+          m14: 2024-08
+        stations:
+          top_n: 30
+    outs:
+    - path: data/raw/departures_hourly.parquet
+      hash: md5
+      md5: d9a49d4dff9c41590b9712bfce958eb2
+      size: 335183
+  weather:
+    cmd: python -m src.data.weather
+    deps:
+    - path: src/data/weather.py
+      hash: md5
+      md5: 5e4b960435358c5d33e23ed882ecb122
+      size: 2658
+    params:
+      params.yaml:
+        months:
+          m1: 2023-07
+          m2: 2023-08
+          m3: 2023-09
+          m4: 2023-10
+          m5: 2023-11
+          m6: 2023-12
+          m7: 2024-01
+          m8: 2024-02
+          m9: 2024-03
+          m10: 2024-04
+          m11: 2024-05
+          m12: 2024-06
+          m13: 2024-07
+          m14: 2024-08
+        weather:
+          api_url: https://archive-api.open-meteo.com/v1/archive
+          latitude: 40.7128
+          longitude: -74.006
+          hourly_vars:
+          - temperature_2m
+          - precipitation
+          - wind_speed_10m
+          timezone: America/New_York
+    outs:
+    - path: data/external/weather/
+      hash: md5
+      md5: a02b68545a66ee72f64f0da8b43f4597.dir
+      size: 175841
+      nfiles: 14
+  holidays:
+    cmd: python -m src.data.holidays
+    deps:
+    - path: src/data/holidays.py
+      hash: md5
+      md5: e82998a3297b1478034414682a40ef55
+      size: 1893
+    params:
+      params.yaml:
+        months:
+          m1: 2023-07
+          m2: 2023-08
+          m3: 2023-09
+          m4: 2023-10
+          m5: 2023-11
+          m6: 2023-12
+          m7: 2024-01
+          m8: 2024-02
+          m9: 2024-03
+          m10: 2024-04
+          m11: 2024-05
+          m12: 2024-06
+          m13: 2024-07
+          m14: 2024-08
+    outs:
+    - path: data/external/holidays.parquet
+      hash: md5
+      md5: f5c2410619ffcc10e195df99932b74df
+      size: 90263
+  features:
+    cmd: python -m src.features.build_features
+    deps:
+    - path: data/external/holidays.parquet
+      hash: md5
+      md5: f5c2410619ffcc10e195df99932b74df
+      size: 90263
+    - path: data/external/weather/
+      hash: md5
+      md5: a02b68545a66ee72f64f0da8b43f4597.dir
+      size: 175841
+      nfiles: 14
+    - path: data/raw/departures_hourly.parquet
+      hash: md5
+      md5: d9a49d4dff9c41590b9712bfce958eb2
+      size: 335183
+    - path: src/features/build_features.py
+      hash: md5
+      md5: 0c3230665e61356e4e75f1605b4ae099
+      size: 6478
+    params:
+      params.yaml:
+        dataset_version: v1
+        dataset_versions:
+          v1:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            replay:
+            - m9
+            - m10
+          v2:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            replay:
+            - m11
+            - m12
+          v3:
+            train:
+            - m1
+            - m2
+            - m3
+            - m4
+            - m5
+            - m6
+            - m7
+            - m8
+            - m9
+            - m10
+            - m11
+            - m12
+            replay:
+            - m13
+            - m14
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 2c5677e77170963407c9c52b33c69f5d
+      size: 1495378

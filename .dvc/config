@@ -1,0 +1,6 @@
+[core]
+    remote = local_remote
+['remote "local_remote"']
+    url = D:\Projects\dvc-storage\bikesense-ai
+['remote "s3_remote"']
+    url = s3://bikesense-ai-dvc/data

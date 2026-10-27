@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# DVC tracked data (actual files, not .dvc pointers)
+/data/raw/*.csv
+/data/raw/*.parquet
+/data/external/weather/*.parquet
+/data/external/holidays.parquet
+/data/processed/*.parquet
+/data/predictions/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Evidently reports (generated, not source)
+/reports/monitoring/*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/

@@ -1,0 +1,24 @@
+# Feature pipeline configuration
+target: departures  # count of departures per station per hour
+
+temporal_features:
+  - hour           # 0–23
+  - day_of_week    # 0=Mon, 6=Sun
+  - month          # 1–12
+  - is_holiday     # 0/1
+
+weather_features:
+  - temperature_2m     # °C
+  - precipitation      # mm
+  - wind_speed_10m     # km/h
+
+lag_features:
+  - lag_24h            # demand at same station, 24 hours earlier
+  - lag_168h           # demand at same station, 168 hours (1 week) earlier
+
+rolling_features:
+  - rolling_7d_same_hour_mean  # 7-day mean of demand at same hour
+
+# Leakage safety: all features must use only data available at issue time
+issue_time: "00:00"
+max_lag_hours: 168  # 7 days — rows with insufficient history are dropped
