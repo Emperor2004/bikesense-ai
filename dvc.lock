@@ -409,8 +409,8 @@ stages:
     deps:
     - path: configs/model.yaml
       hash: md5
-      md5: f55953b6158e3640738fea051368a27e
-      size: 1195
+      md5: 4aa92d65041b82d650712ae4217a1509
+      size: 1194
     - path: data/processed/features.parquet
       hash: md5
       md5: 79883c781871e214513e5b77b73a1e13
@@ -652,11 +652,11 @@ stages:
             reg_lambda: 0.1
             random_state: 42
         ridge:
-          alpha: 0.5
+          alpha: 1.0
         tuning:
           enabled: true
           n_trials: 4
-          random_state: 777
+          random_state: 42
           param_distributions:
             n_estimators:
             - 100
@@ -695,23 +695,23 @@ stages:
     outs:
     - path: reports/evaluation/latest_training_summary.json
       hash: md5
-      md5: cfb8cab26f8f13d65a6e254957d7c8f8
-      size: 3080
+      md5: dcc5415914baf5fa3d243d5e58745030
+      size: 2834
   evaluate:
     cmd: .venv\Scripts\python -m src.models.evaluate
     deps:
     - path: configs/model.yaml
       hash: md5
-      md5: f55953b6158e3640738fea051368a27e
-      size: 1195
+      md5: 4aa92d65041b82d650712ae4217a1509
+      size: 1194
     - path: data/processed/features.parquet
       hash: md5
       md5: 79883c781871e214513e5b77b73a1e13
       size: 6339767
     - path: reports/evaluation/latest_training_summary.json
       hash: md5
-      md5: cfb8cab26f8f13d65a6e254957d7c8f8
-      size: 3080
+      md5: dcc5415914baf5fa3d243d5e58745030
+      size: 2834
     - path: src/models/baseline.py
       hash: md5
       md5: 752cdad887303048e87ef02e7de36f7b
@@ -928,5 +928,5 @@ stages:
     outs:
     - path: reports/evaluation/latest_evaluation.md
       hash: md5
-      md5: 7da47a24dc9decf9aa9eb5830d96163c
+      md5: 616e2d37a49216f1da0e626d9305cd79
       size: 486

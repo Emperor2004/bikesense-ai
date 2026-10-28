@@ -12,7 +12,7 @@ feature_columns:
 - lag_168h
 - rolling_7d_same_hour_mean
 ridge:
-  alpha: 0.5
+  alpha: 1.0
 
 lightgbm:
   experiments:
@@ -39,7 +39,7 @@ lightgbm:
 tuning:
   enabled: true
   n_trials: 4
-  random_state: 777
+  random_state: 42
   param_distributions:
     n_estimators:
     - 100
