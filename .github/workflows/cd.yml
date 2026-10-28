@@ -28,6 +28,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -39,38 +44,23 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Create Stub MLflow Artifacts (if not in repo)
-        # mlflow.db and mlruns/ are gitignored; create stubs so COPY succeeds in Docker build
+      - name: Create Stub MLflow Artifacts
+        # mlflow.db and mlruns/ are gitignored (large model binaries).
+        # We initialize a clean MLflow SQLite DB using MLflow directly so Alembic migrations match.
         run: |
-          if [ ! -f mlflow.db ]; then
-            python3 - << 'EOF'
-          import sqlite3, pathlib
-          db = sqlite3.connect("mlflow.db")
-          db.executescript("""
-            CREATE TABLE IF NOT EXISTS experiments (
-              experiment_id TEXT PRIMARY KEY, name TEXT,
-              artifact_location TEXT, lifecycle_stage TEXT,
-              creation_time INTEGER, last_update_time INTEGER
-            );
-            CREATE TABLE IF NOT EXISTS runs (
-              run_uuid TEXT PRIMARY KEY, name TEXT,
-              source_type TEXT, source_name TEXT, entry_point_name TEXT,
-              user_id TEXT, status TEXT, start_time INTEGER, end_time INTEGER,
-              source_version TEXT, lifecycle_stage TEXT,
-              artifact_uri TEXT, experiment_id TEXT
-            );
-            INSERT OR IGNORE INTO experiments VALUES
-              ('0','Default','file:///app/mlruns/0','active',0,0);
-          """)
-          db.commit(); db.close()
-          pathlib.Path("mlruns/0").mkdir(parents=True, exist_ok=True)
-          pathlib.Path("mlruns/0/meta.yaml").write_text(
-              "artifact_location: file:///app/mlruns/0\nexperiment_id: '0'\n"
-              "lifecycle_stage: active\nname: Default\n"
-          )
-          print("Stub mlflow.db and mlruns/ created.")
-          EOF
-          fi
+          pip install --no-cache-dir mlflow-skinny
+          python3 -c "
+          import mlflow
+          mlflow.set_tracking_uri('sqlite:///mlflow.db')
+          from mlflow.tracking import MlflowClient
+          client = MlflowClient()
+          try:
+              client.create_registered_model('bikesense-demand-forecaster')
+          except Exception:
+              pass
+          print('Clean MLflow registry database initialized for ECR build.')
+          "
+          mkdir -p mlruns/0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -81,12 +71,20 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'bikesense-forecaster' }}
           IMAGE_TAG: ${{ github.sha }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
         run: |
+          echo "=== Checking / creating ECR repository: $ECR_REPOSITORY ==="
+          aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" --region "$AWS_REGION" 2>/dev/null || \
+          aws ecr create-repository --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" || true
+
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "Building Docker image: $IMAGE_URI"
           docker build \
             -t "$IMAGE_URI" \
             -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
             .
+
+          echo "Pushing Docker image to Amazon ECR: $IMAGE_URI"
           docker push "$IMAGE_URI"
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
