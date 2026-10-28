@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── JOB 1: Code Quality & Linting ──────────────────────────────────────────
   lint-and-code-quality:
     name: Code Quality & Linting
     runs-on: ubuntu-latest
@@ -24,15 +25,15 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install Linting Tools
+      - name: Install Ruff
         run: |
           python -m pip install --upgrade pip
           pip install ruff
 
       - name: Run Ruff Linting
-        run: |
-          ruff check src/ app/ service/ tests/
+        run: ruff check src/ app/ service/ tests/
 
+  # ── JOB 2: Unit & Integration Tests ────────────────────────────────────────
   unit-and-integration-tests:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest
@@ -64,6 +65,7 @@ jobs:
           path: coverage.xml
           retention-days: 7
 
+  # ── JOB 3: Docker Build & Healthcheck ──────────────────────────────────────
   docker-build-verification:
     name: Docker Build & Health Verification
     runs-on: ubuntu-latest
@@ -84,10 +86,17 @@ jobs:
           tags: bikesense-forecast:ci
           load: true
 
-      - name: Run Container & Test Healthcheck
+      - name: Start Container & Verify Health
         run: |
           docker run -d -p 8000:8000 --name bikesense-ci bikesense-forecast:ci
-          sleep 12
-          curl --retry 5 --retry-delay 2 --retry-connrefused -f http://localhost:8000/health
-          curl -f http://localhost:8000/model-info
+          echo "Waiting for container to start..."
+          sleep 15
+          echo "Testing /health..."
+          curl --retry 8 --retry-delay 3 --retry-connrefused \
+               --retry-all-errors -sf http://localhost:8000/health
+          echo ""
+          echo "Testing /model-info..."
+          curl -sf http://localhost:8000/model-info
+          echo ""
+          echo "All health checks passed!"
           docker stop bikesense-ci

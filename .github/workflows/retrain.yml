@@ -39,19 +39,19 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Configure AWS Credentials for DVC S3
+      - name: Configure AWS Credentials (for DVC S3 remote)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-region:            ${{ secrets.AWS_REGION }}
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Pull Cached Data from S3
+      - name: Pull Cached Artifacts from S3
         run: |
           dvc pull --no-run-cache || true
 
@@ -63,7 +63,7 @@ jobs:
             dvc repro
           fi
 
-      - name: Push Updated Data Artifacts to S3
+      - name: Push Updated Artifacts to S3
         run: |
           dvc push
 
@@ -71,12 +71,14 @@ jobs:
         run: |
           python -m src.registry.register
 
-      - name: Run Promotion Gate
+      - name: Run Promotion Gate (auto-approve in CI)
         run: |
-          python -m src.registry.promote || echo "Challenger did not pass promotion gate threshold."
+          python -m src.registry.promote --auto-approve \
+            || echo "Challenger did not pass promotion gate — champion retained."
 
       - name: Upload Training & Evaluation Reports
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: retrain-evaluation-reports
           path: reports/evaluation/

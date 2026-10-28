@@ -15,12 +15,15 @@ on:
           - staging
 
 jobs:
+  # ── JOB 1: Build & Push Docker Image to Amazon ECR ─────────────────────────
   build-and-push-ecr:
     name: Build & Push Image to AWS ECR
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+    outputs:
+      image_uri: ${{ steps.build.outputs.image_uri }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -30,7 +33,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -39,16 +42,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, Tag & Push Image to ECR
+        id: build
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'bikesense-forecaster' }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build \
+            -t "$IMAGE_URI" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            .
+          docker push "$IMAGE_URI"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
+  # ── JOB 2: Deploy Container to EC2 ─────────────────────────────────────────
   deploy-to-ec2:
     name: Deploy Container to EC2 Instance
     runs-on: ubuntu-latest
@@ -57,40 +67,44 @@ jobs:
       - name: Configure SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2.pem
+          printf '%s\n' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2.pem
           chmod 600 ~/.ssh/ec2.pem
 
-      - name: Pull and Restart Container on EC2
+      - name: Deploy to EC2 via SSH
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'bikesense-forecaster' }}
+          EC2_HOST:         ${{ secrets.EC2_HOST }}
+          EC2_USER:         ${{ secrets.EC2_USER }}
+          AWS_REGION:       ${{ secrets.AWS_REGION }}
+          ECR_REPOSITORY:   ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_URI:        ${{ needs.build-and-push-ecr.outputs.image_uri }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2.pem $EC2_USER@$EC2_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2.pem "$EC2_USER@$EC2_HOST" \
+            "AWS_REGION='$AWS_REGION' ECR_REPOSITORY='$ECR_REPOSITORY' IMAGE_URI='$IMAGE_URI' bash -s" << 'ENDSSH'
             set -e
-            echo "Authenticating Docker with AWS ECR..."
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com
-            
+
+            echo "=== Authenticating Docker with AWS ECR ==="
             ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-            IMAGE_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest"
-            
-            echo "Pulling latest image: $IMAGE_URI"
-            docker pull $IMAGE_URI
-            
-            echo "Stopping existing container if running..."
-            docker stop bikesense-service || true
-            docker rm bikesense-service || true
-            
-            echo "Starting updated container..."
+            ECR_REGISTRY="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+            aws ecr get-login-password --region "$AWS_REGION" \
+              | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+            echo "=== Pulling image: $IMAGE_URI ==="
+            docker pull "$IMAGE_URI"
+
+            echo "=== Replacing running container ==="
+            docker stop bikesense-service 2>/dev/null || true
+            docker rm   bikesense-service 2>/dev/null || true
+
             docker run -d \
               --name bikesense-service \
               --restart unless-stopped \
               -p 8000:8000 \
-              $IMAGE_URI
-            
-            echo "Verifying service health on EC2..."
-            sleep 5
-            curl -f http://localhost:8000/health
-            echo "Deployment successful!"
-          EOF
+              "$IMAGE_URI"
+
+            echo "=== Verifying service health ==="
+            sleep 8
+            curl --retry 5 --retry-delay 2 --retry-connrefused \
+                 --retry-all-errors -sf http://localhost:8000/health
+            echo ""
+            echo "=== Deployment successful! ==="
+          ENDSSH

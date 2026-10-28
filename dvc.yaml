@@ -1,6 +1,6 @@
 stages:
   ingest:
-    cmd: .venv\Scripts\python -m src.data.ingest
+    cmd: python -m src.data.ingest
     deps:
       - src/data/ingest.py
       - src/data/validate.py
@@ -13,7 +13,7 @@ stages:
       - data/raw/departures_hourly.parquet
 
   weather:
-    cmd: .venv\Scripts\python -m src.data.weather
+    cmd: python -m src.data.weather
     deps:
       - src/data/weather.py
     params:
@@ -24,7 +24,7 @@ stages:
       - data/external/weather/
 
   holidays:
-    cmd: .venv\Scripts\python -m src.data.holidays
+    cmd: python -m src.data.holidays
     deps:
       - src/data/holidays.py
     params:
@@ -34,7 +34,7 @@ stages:
       - data/external/holidays.parquet
 
   features:
-    cmd: .venv\Scripts\python -m src.features.build_features
+    cmd: python -m src.features.build_features
     deps:
       - src/features/build_features.py
       - data/raw/departures_hourly.parquet
@@ -48,7 +48,7 @@ stages:
       - data/processed/features.parquet
 
   train:
-    cmd: .venv\Scripts\python -m src.models.train
+    cmd: python -m src.models.train
     deps:
       - src/models/train.py
       - src/models/baseline.py
@@ -68,7 +68,7 @@ stages:
           cache: false
 
   evaluate:
-    cmd: .venv\Scripts\python -m src.models.evaluate
+    cmd: python -m src.models.evaluate
     deps:
       - src/models/evaluate.py
       - src/models/baseline.py
