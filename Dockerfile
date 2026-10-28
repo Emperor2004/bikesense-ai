@@ -17,7 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install minimal OS packages & dependencies (curl for EC2 healthchecks, git for lineage)
+# Install minimal OS packages (curl for healthchecks, git for lineage)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
@@ -37,16 +37,21 @@ COPY config.yaml .
 COPY params.yaml .
 COPY dvc.lock .
 
-# Bundle the model registry database and model artifacts inside the Docker image
-# This ensures self-contained inference on Amazon EC2 without external runtime dependencies
+# Bundle the model registry database — required for serving
+# (mlruns/ and mlflow.db must exist before building; they are populated locally)
 COPY mlflow.db /app/mlflow.db
 COPY mlruns/ /app/mlruns/
 
 # Normalize host file URIs in mlflow.db to container paths
-RUN python -c "import sqlite3; conn = sqlite3.connect('/app/mlflow.db'); cur = conn.cursor(); \
-    cur.execute(\"UPDATE experiments SET artifact_location = REPLACE(REPLACE(artifact_location, 'file:D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns'), 'file:///D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns')\"); \
-    cur.execute(\"UPDATE runs SET artifact_uri = REPLACE(REPLACE(artifact_uri, 'file:D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns'), 'file:///D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns')\"); \
-    conn.commit(); conn.close()"
+# Handles both file:D:/... (no triple slash) and file:///D:/... (triple slash) variants
+RUN python -c "\
+import sqlite3; \
+conn = sqlite3.connect('/app/mlflow.db'); \
+cur = conn.cursor(); \
+cur.execute(\"UPDATE experiments SET artifact_location = REPLACE(REPLACE(artifact_location, 'file:D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns'), 'file:///D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns')\"); \
+cur.execute(\"UPDATE runs SET artifact_uri = REPLACE(REPLACE(artifact_uri, 'file:D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns'), 'file:///D:/Projects/bikesense-ai/mlruns', 'file:///app/mlruns')\"); \
+conn.commit(); \
+conn.close()"
 
 # Copy processed reference features for station inference fallback & metadata
 COPY data/processed/ /app/data/processed/
