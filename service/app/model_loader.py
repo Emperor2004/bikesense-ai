@@ -2,6 +2,7 @@
 
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import mlflow
@@ -53,7 +54,26 @@ class DynamicModelLoader:
                 model_uri = f"models:/{self.model_name}/{active_version}"
             else:
                 model_uri = f"models:/{self.model_name}@{active_version}"
-            loaded_model = mlflow.pyfunc.load_model(model_uri)
+
+            try:
+                loaded_model = mlflow.pyfunc.load_model(model_uri)
+            except Exception as e:
+                # Cross-platform fallback: resolve via model source if URI points to host paths
+                mv = self.client.get_model_version(self.model_name, active_version)
+                source = getattr(mv, "source", "")
+                recovered = False
+                if source.startswith("models:/m-"):
+                    model_id = source.replace("models:/", "")
+                    for candidate in [
+                        Path(f"/app/mlruns/1/models/{model_id}/artifacts"),
+                        Path(f"mlruns/1/models/{model_id}/artifacts"),
+                    ]:
+                        if candidate.exists():
+                            loaded_model = mlflow.pyfunc.load_model(str(candidate))
+                            recovered = True
+                            break
+                if not recovered:
+                    raise e
 
             # Retrieve model version tags for lineage
             mv = self.client.get_model_version(self.model_name, active_version)
