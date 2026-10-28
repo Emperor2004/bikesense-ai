@@ -1,6 +1,5 @@
 """Helper script to initialize an empty MLflow SQLite registry database for container builds."""
 
-import os
 from pathlib import Path
 
 
