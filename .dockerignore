@@ -1,0 +1,35 @@
+# Git and Virtual Environments
+.git
+.gitignore
+.venv
+venv
+env
+
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Raw Data (only processed features/metadata are bundled)
+data/raw/
+data/external/
+data/predictions/*.csv
+
+# DVC Internal
+.dvc/cache/
+.dvc/tmp/
+
+# Documentation and Temporary Files
+docs/
+*.md
+!README.md
+*.log
+*.tmp
+*.bak
+exp.csv

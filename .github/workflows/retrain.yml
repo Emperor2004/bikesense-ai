@@ -9,12 +9,16 @@ on:
       dataset_version:
         description: "Dataset version to retrain on"
         required: true
-        default: "v1"
+        default: "v7"
         type: choice
         options:
           - v1
           - v2
           - v3
+          - v4
+          - v5
+          - v6
+          - v7
       force_repro:
         description: "Force reproduction of all DVC stages (--force)"
         required: false
