@@ -78,24 +78,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
-      - name: Create Stub MLflow Artifacts for CI Build
-        # mlflow.db and mlruns/ are gitignored (contain large model artifacts).
-        # We initialize a clean MLflow SQLite DB using MLflow directly so Alembic migrations match.
+      - name: Initialize Clean MLflow Stub Artifacts
         run: |
-          pip install --no-cache-dir mlflow-skinny
-          python3 -c "
-          import mlflow
-          mlflow.set_tracking_uri('sqlite:///mlflow.db')
-          from mlflow.tracking import MlflowClient
-          client = MlflowClient()
-          try:
-              client.create_registered_model('bikesense-demand-forecaster')
-          except Exception:
-              pass
-          print('Clean MLflow registry database initialized for CI container build.')
-          "
-          mkdir -p mlruns/0
+          python -m pip install --upgrade pip
+          pip install -r requirements-serve.txt
+          python service/init_stub_mlflow.py
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -113,7 +102,7 @@ jobs:
         run: |
           docker run -d -p 8000:8000 --name bikesense-ci bikesense-forecast:ci
           echo "Waiting for container to start..."
-          sleep 10
+          sleep 12
           echo "Container status:"
           docker ps -a
           echo "--- Testing /health ---"
