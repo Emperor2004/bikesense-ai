@@ -1,8 +1,0 @@
-[core]
-    remote = myremotes3
-['remote "local_remote"']
-    url = D:\Projects\dvc-storage\bikesense-ai
-['remote "s3_remote"']
-    url = s3://bikesense-ai-dvc/data
-['remote "myremotes3"']
-    url = s3://om-dvc-bucket
